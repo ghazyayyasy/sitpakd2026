@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiTPAKD - Full Enterprise Workflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .locked-tab { opacity: 0.5; pointer-events: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Excel Mockup Style */
+        .excel-table { border-collapse: collapse; width: 100%; font-family: 'Calibri', sans-serif; font-size: 11px; }
+        .excel-table th, .excel-table td { border: 1px solid #d4d4d4; padding: 4px 8px; white-space: nowrap; }
+        .excel-table th { background-color: #f3f3f3; color: #444; font-weight: normal; text-align: center; }
+        .excel-table .col-header { background-color: #e6e6e6; border-bottom: 2px solid #217346; font-weight: bold; }
+        .excel-row-num { background-color: #f3f3f3; color: #444; text-align: center; width: 30px; }
+    </style>
+</head>
+<body class="text-gray-800" onclick="closeAllDropdowns(event)">
+
+    <!-- Elemen DataList untuk Rekomendasi Tema (Auto-complete) -->
+    <datalist id="temaList_opts">
+        <option value="Peningkatan Literasi Pelajar">
+        <option value="Pemberdayaan UMKM">
+        <option value="Akses Keuangan Desa">
+        <option value="Digitalisasi Keuangan">
+        <option value="Kredit Murah Pedagang">
+    </datalist>
+
+    <nav class="bg-slate-900 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white font-extrabold px-3 py-1.5 rounded-md text-sm tracking-wide">SiTPAKD</div>
+                <h1 class="text-lg font-semibold hidden sm:block border-l border-slate-700 pl-3 ml-1">Portal Enterprise Pelaporan</h1>
+            </div>
+            
+            <div class="flex items-center gap-3 relative" id="roleDropdownContainer">
+                <button onclick="toggleRoleDropdown(event)" id="roleIndicator" class="bg-slate-800 border border-slate-600 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 text-white hover:bg-slate-700 transition-colors shadow-sm focus:outline-none">
+                    <span id="roleIcon">👤</span> <span id="roleText">Pelapor (Kab. Malang) ▼</span>
+                </button>
+                <div id="roleMenu" class="hidden absolute top-full right-0 mt-2 w-72 rounded-xl shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden fade-in">
+                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-100"><span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Pilih Role Simulasi</span></div>
+                    <div class="py-1" role="none">
+                        <button onclick="changeRole('maker_kab')" class="text-gray-700 flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium border-b border-gray-50"><span class="bg-blue-100 text-blue-600 p-1.5 rounded-lg">👤</span> Pelapor (TPAKD Kab/Kota)</button>
+                        <button onclick="changeRole('checker_prov')" class="text-gray-700 flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-amber-50 hover:text-amber-700 transition-colors font-medium border-b border-gray-50"><span class="bg-amber-100 text-amber-600 p-1.5 rounded-lg">🛡️</span> Verifikator (Provinsi)</button>
+                        <button onclick="changeRole('maker_prov')" class="text-gray-700 flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors font-medium border-b border-gray-50"><span class="bg-indigo-100 text-indigo-600 p-1.5 rounded-lg">🏢</span> Pelapor (TPAKD Provinsi)</button>
+                        <button onclick="changeRole('checker_pusat')" class="text-gray-700 flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium"><span class="bg-purple-100 text-purple-600 p-1.5 rounded-lg">🏛️</span> Verifikator (Pusat)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="bg-white border-b border-gray-200 shadow-sm sticky top-[68px] z-40 overflow-x-auto custom-scrollbar">
+        <div class="max-w-7xl mx-auto px-4 flex gap-6 min-w-max">
+            <button id="tab1" onclick="switchTab(1)" class="tab-maker py-4 px-2 font-semibold text-blue-700 border-b-2 border-blue-700 transition-colors flex items-center gap-2"><span class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span> Laporan Rencana</button>
+            <button id="tab2" onclick="switchTab(2)" class="tab-checker hidden py-4 px-2 font-semibold text-gray-400 border-b-2 border-transparent transition-colors flex items-center gap-2 locked-tab relative"><span class="bg-gray-200 text-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span> Verifikasi Rencana<span id="badgeTab2" class="hidden absolute top-2 right-[-5px] bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">!</span></button>
+            <button id="tab3" onclick="switchTab(3)" class="tab-maker py-4 px-2 font-semibold text-gray-400 border-b-2 border-transparent transition-colors flex items-center gap-2 locked-tab relative"><span class="bg-gray-200 text-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold" id="iconTab3">🔒</span> Laporan Realisasi</button>
+            <button id="tab4" onclick="switchTab(4)" class="tab-checker hidden py-4 px-2 font-semibold text-gray-400 border-b-2 border-transparent transition-colors flex items-center gap-2 locked-tab relative"><span class="bg-gray-200 text-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold" id="iconTab4">🔒</span> Verifikasi Realisasi<span id="badgeTab4" class="hidden absolute top-2 right-[-5px] bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">!</span></button>
+            <button id="tab5" onclick="switchTab(5)" class="tab-checker hidden py-4 px-2 font-semibold text-gray-400 border-b-2 border-transparent transition-colors flex items-center gap-2"><span class="bg-gray-200 text-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">📊</span> Agregasi & Konsolidasi</button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mt-6 px-4 pb-24">
+        
+        <!-- VIEW 1: RENCANA -->
+        <div id="view1" class="fade-in block">
+            <div id="view1_list" class="block">
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-blue-200 border-l-4 border-l-blue-500 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div><h2 class="text-2xl font-bold text-gray-800">Dasbor Rencana Program Kerja</h2><p class="text-gray-500 mt-1 text-sm">Kelola dan pantau pengajuan laporan rencana <span class="lbl-entitas-pelapor font-bold">TPAKD Kab. Malang</span>.</p></div>
+                    <button onclick="showMakerRencanaForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2">+ Buat Rencana Baru</button>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left text-gray-600">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold tracking-wider">
+                            <tr><th class="px-6 py-4">Tahun</th><th class="px-6 py-4">Nama Dokumen</th><th class="px-6 py-4 text-center">Versi</th><th class="px-6 py-4">Jumlah Program</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-center">Aksi</th></tr>
+                        </thead>
+                        <tbody id="tbodyMakerRencanaList" class="divide-y divide-gray-200 bg-white">
+                            <!-- Generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view1_form" class="hidden fade-in">
+                <div class="mb-6 flex items-center justify-between">
+                    <button onclick="hideMakerRencanaForm()" class="text-gray-500 hover:text-gray-800 font-semibold text-sm flex items-center gap-1 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">← Kembali ke Dasbor</button>
+                    <div class="text-lg font-bold text-blue-800">Form Input Rencana 2026</div>
+                </div>
+                <div id="feedbackBanner" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3 items-start transition-all">
+                    <span class="text-red-500 text-xl">⚠️</span><div><h4 class="font-bold text-red-800 text-sm">Laporan Dikembalikan untuk Revisi</h4><p class="text-sm text-red-600 mt-1">Silakan perbaiki program kerja berdasarkan tanggapan Verifikator.</p></div>
+                </div>
+                
+                <div id="programListContainer"></div>
+
+                <button type="button" onclick="tambahProgram()" class="w-full border-2 border-dashed border-blue-300 bg-white text-blue-600 font-semibold rounded-xl p-4 hover:bg-blue-50 flex items-center justify-center gap-2 mb-8 shadow-sm">+ Tambah Program Kerja Baru</button>
+
+                <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl shadow-sm mb-6">
+                    <h3 class="font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2">📁 Dokumen Pendukung Laporan</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-2">1. Upload Rencana Kerja (RKPD) / Revisi <span class="text-red-500">*</span></label>
+                            <input type="file" id="globalFileRkpd" class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 cursor-pointer border border-gray-300 bg-white rounded-lg">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-end mb-2">
+                                <label class="block text-xs font-bold text-gray-600 uppercase">2. Upload Lembar Pengesahan <span class="text-red-500">*</span></label>
+                                <a href="#" onclick="showAlert('Unduhan Berhasil', 'Template Lembar_Pengesahan.docx diunduh!')" class="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline">⬇️ Download Template</a>
+                            </div>
+                            <input type="file" id="globalFilePengesahan" class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 cursor-pointer border border-gray-300 bg-white rounded-lg">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-4 gap-4 border-t border-gray-300 mt-6">
+                    <button type="button" onclick="hideMakerRencanaForm()" class="px-6 py-3.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50">Simpan Draft & Batal</button>
+                    <button type="button" onclick="submitRencana()" class="px-10 py-3.5 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 shadow-md">Kirim untuk Verifikasi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: VERIF RENCANA -->
+        <div id="view2" class="fade-in hidden">
+            <div id="listTPAKDView" class="block">
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-amber-200 border-l-4 border-l-amber-500 bg-amber-50/30 flex justify-between items-center">
+                    <div><h2 class="text-2xl font-bold text-gray-800">Antrean Verifikasi Rencana</h2><p class="text-gray-600 mt-1 text-sm">Filter dan pilih TPAKD untuk mereview Laporan Rencana atau Adendum.</p></div>
+                    <button onclick="openExcelModal('rencana')" class="bg-[#217346] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm">⬇️ Unduh Rekap (Excel)</button>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left text-gray-600">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold tracking-wider">
+                            <tr><th class="px-6 py-4">Tahun</th><th class="px-6 py-4">Nama TPAKD</th><th class="px-6 py-4 text-center">Versi</th><th class="px-6 py-4">Jumlah Program</th><th class="px-6 py-4">Status Rencana</th><th class="px-6 py-4 text-center">Aksi</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white" id="tbodyCheckerRencana">
+                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Antrean Kosong.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="detailReviewView" class="hidden fade-in">
+                <div class="mb-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                    <button onclick="backToList('Rencana')" class="text-gray-500 hover:text-gray-800 font-semibold text-sm bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">← Kembali ke Antrean</button>
+                    <div class="bg-white p-4 rounded-lg border border-amber-200 shadow-sm w-full md:w-auto">
+                        <div class="text-sm font-bold text-amber-800 border-b border-amber-100 pb-2 mb-2">Review: <span id="judulTPAKDTinjau" class="lbl-entitas-pelapor"></span> <span id="labelVersiReview" class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs ml-2">V1</span></div>
+                        <div class="flex flex-col sm:flex-row gap-4 text-[11px] font-semibold text-gray-600">
+                            <div class="flex items-center gap-1"><span class="bg-amber-100 text-amber-700 p-1 rounded">📄 RKPD:</span> <a id="linkRkpdPreview" href="#" class="text-blue-600 hover:underline"></a></div>
+                            <div class="flex items-center gap-1"><span class="bg-amber-100 text-amber-700 p-1 rounded">📝 Pengesahan:</span> <a id="linkPengesahanPreview" href="#" class="text-blue-600 hover:underline"></a></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="reviewListContainer" class="flex flex-col gap-6 mb-8"></div>
+                <div class="flex justify-end bg-white p-6 rounded-xl border border-gray-200 shadow-sm gap-4">
+                    <button type="button" onclick="kembalikanRevisi()" class="px-6 py-2.5 border border-red-300 text-red-600 font-bold rounded-lg hover:bg-red-50">Kembalikan (Revisi)</button>
+                    <button type="button" onclick="approveRencana()" class="px-8 py-2.5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 shadow-md">Approve</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: REALISASI -->
+        <div id="view3" class="fade-in hidden">
+            <div id="view3_list" class="block">
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-emerald-200 border-l-4 border-l-emerald-500 flex justify-between items-center">
+                    <div><h2 class="text-2xl font-bold text-gray-800">Dasbor Capaian Realisasi</h2><p class="text-gray-500 mt-1 text-sm">Target mengacu pada Rencana Kerja <b class="text-emerald-700">Versi (<span id="infoVersiAktif">V1</span>)</b> yang telah di-Approve <b class="lbl-entitas-checker text-emerald-700"></b>.</p></div>
+                    <button onclick="showMakerRealisasiForm()" class="bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm">+ Input Realisasi Baru</button>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left text-gray-600">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold tracking-wider">
+                            <tr><th class="px-6 py-4">Tahun</th><th class="px-6 py-4">Triwulan</th><th class="px-6 py-4 text-center">Versi (Ref)</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-center">Aksi</th></tr>
+                        </thead>
+                        <tbody id="tbodyMakerRealisasiList" class="divide-y divide-gray-200 bg-white">
+                            <tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">Belum ada Laporan Realisasi.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view3_form" class="hidden fade-in">
+                <div class="mb-6 flex items-center justify-between">
+                    <button onclick="hideMakerRealisasiForm()" class="text-gray-500 hover:text-gray-800 font-semibold text-sm bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">← Kembali</button>
+                    <div class="text-lg font-bold text-emerald-800">Laporan Realisasi <span id="labelVersiFormRealTitle" class="bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded text-[11px] ml-1 font-bold">V1</span></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap gap-4 items-end">
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tahun <span class="text-red-500">*</span></label>
+                        <select id="tahunSelect" onchange="generateTableRealisasi()" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-emerald-800"><option value="2026">2026</option><option value="2027">2027</option></select>
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Triwulan <span class="text-red-500">*</span></label>
+                        <select id="triwulanSelect" onchange="generateTableRealisasi()" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-bold text-emerald-800 bg-emerald-50">
+                            <option value="">-- Pilih Triwulan --</option><option value="Q1">Q1 (Jan - Mar)</option><option value="Q2">Q2 (Apr - Jun)</option><option value="Q3">Q3 (Jul - Sep)</option><option value="Q4">Q4 (Okt - Des)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tableRealisasiContainer" class="hidden bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold">
+                            <tr><th class="px-4 py-3 w-1/4">Program & Bukti</th><th class="px-4 py-3 w-1/4">Target Rencana <span id="labelVersiFormRealTable" class="bg-emerald-200 text-emerald-800 px-1 rounded text-[9px]">V1</span></th><th class="px-4 py-3 w-1/4 bg-emerald-50">Capaian Aktual</th><th class="px-4 py-3 w-1/4">Keterangan Laporan</th></tr>
+                        </thead>
+                        <tbody id="tbodyRealisasi" class="divide-y divide-gray-200 bg-white"></tbody>
+                    </table>
+                </div>
+                <div id="actionRealisasi" class="hidden flex justify-end gap-4 border-t border-gray-300 pt-6">
+                    <button type="button" onclick="hideMakerRealisasiForm()" class="px-6 py-3.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50">Batal</button>
+                    <button type="button" onclick="submitRealisasi()" class="px-8 py-3.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-md">Submit <span id="labelTwSubmit"></span></button>
+                </div>
+                <div id="actionRealisasiReadOnly" class="hidden flex justify-end gap-4 border-t border-gray-300 pt-6">
+                    <button type="button" onclick="hideMakerRealisasiForm()" class="px-6 py-3.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50">← Kembali ke Dasbor</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: VERIFIKASI REALISASI -->
+        <div id="view4" class="fade-in hidden">
+            <div id="listTPAKDRealisasiView" class="block">
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-purple-200 border-l-4 border-l-purple-500 bg-purple-50/30 flex justify-between items-center">
+                    <div><h2 class="text-2xl font-bold text-gray-800">Antrean Verifikasi Realisasi</h2><p class="text-gray-600 mt-1 text-sm">Tinjau kesesuaian realisasi dengan target dan bukti dukung per triwulan.</p></div>
+                    <button onclick="openExcelModal('realisasi')" class="bg-[#217346] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm">⬇️ Unduh Capaian (Excel)</button>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left text-gray-600">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-bold tracking-wider">
+                            <tr><th class="px-6 py-4">Tahun</th><th class="px-6 py-4">Triwulan</th><th class="px-6 py-4">Nama TPAKD</th><th class="px-6 py-4 text-center">Versi (Ref)</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-center">Aksi</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white" id="tbodyCheckerRealisasi">
+                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Antrean Kosong.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="detailRealisasiReviewView" class="hidden fade-in">
+                <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <button onclick="backToList('Realisasi')" class="text-gray-500 font-semibold text-sm bg-white px-4 py-2 rounded-lg border shadow-sm">← Kembali ke Antrean</button>
+                    <div class="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm font-bold text-purple-800">
+                        Review Realisasi <span id="labelTwReview"></span>: <span id="judulTPAKDTinjauRealisasi" class="lbl-entitas-pelapor"></span>
+                        <span id="labelVersiReviewReal" class="bg-white px-2 rounded ml-2 border border-purple-200">V1</span>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                        <thead class="bg-purple-50 text-xs uppercase text-purple-700 font-bold">
+                            <tr><th class="px-4 py-3 w-1/4">Program & Lampiran</th><th class="px-4 py-3 w-1/4">Target vs Aktual</th><th class="px-4 py-3 w-1/4">Keterangan & Catatan TPAKD</th><th class="px-4 py-3 w-1/4">Catatan Revisi Verifikator</th></tr>
+                        </thead>
+                        <tbody id="tbodyReviewRealisasi" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end bg-white p-6 rounded-xl border border-gray-200 shadow-sm gap-4">
+                    <button type="button" onclick="kembalikanRevisiRealisasi()" class="px-6 py-2.5 border border-red-300 text-red-600 font-bold rounded-lg hover:bg-red-50">Kembalikan (Revisi)</button>
+                    <button type="button" onclick="approveRealisasi()" class="px-8 py-2.5 bg-purple-600 text-white font-bold rounded-lg shadow-md">Approve</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 5: KONSOLIDASI (EXECUTIVE SUMMARY) -->
+        <div id="view5" class="fade-in hidden">
+            <div class="mb-6 bg-slate-900 text-white p-6 rounded-xl shadow-md border-l-4 border-l-indigo-500 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iMiIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIvPjwvc3ZnPg==')]">
+                <h2 class="text-2xl font-bold" id="lbl-konsolidasi-title">Dasbor Konsolidasi Eksekutif</h2>
+                <p class="text-slate-300 mt-1 text-sm">Buku besar (*General Ledger*) yang merangkum keseluruhan target gabungan TPAKD, dan menyandingkannya dengan pencapaian aktual terkini.</p>
+                
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800 border border-slate-700 px-5 py-3 rounded-lg flex flex-col justify-center">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Total Kategori Program Diusung</span>
+                        <span class="text-2xl font-bold text-emerald-400" id="statKategori">0 Kategori Program Kerja</span>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 px-5 py-3 rounded-lg flex flex-col justify-center">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Volume Program (Kumulatif)</span>
+                        <span class="text-2xl font-bold text-indigo-400" id="statTotalProgKon">0 Program</span>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-white mt-6 mb-3">Statistik Kepatuhan Pelaporan (Telah di-Approve)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase mb-1">Laporan Rencana</span>
+                        <span class="text-xl font-bold text-white" id="statPatuhRencana">0/0</span>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase mb-1">Realisasi TW 1</span>
+                        <span class="text-xl font-bold text-white" id="statPatuhQ1">0/0</span>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase mb-1">Realisasi TW 2</span>
+                        <span class="text-xl font-bold text-white" id="statPatuhQ2">0/0</span>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase mb-1">Realisasi TW 3</span>
+                        <span class="text-xl font-bold text-white" id="statPatuhQ3">0/0</span>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-3 rounded-lg text-center flex flex-col justify-center">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase mb-1">Realisasi TW 4</span>
+                        <span class="text-xl font-bold text-white" id="statPatuhQ4">0/0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-700">Agregasi Makro: Target Rencana vs Realisasi Terkini</h3>
+                    <button onclick="openExcelModal('konsolidasi')" class="bg-[#217346] text-white px-4 py-2 rounded text-sm font-bold shadow-sm flex items-center gap-2">⬇️ Unduh Agregat (Excel)</button>
+                </div>
+                <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+                        <thead class="bg-gray-100 text-xs uppercase text-gray-600 font-bold sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th class="px-4 py-3">Kategori Program Kerja</th>
+                                <th class="px-4 py-3 border-l border-gray-200">Indikator Kuantitatif</th>
+                                <th class="px-4 py-3 border-l border-gray-200 text-right bg-blue-50/50">Total Target (Gabungan)</th>
+                                <th class="px-4 py-3 border-l border-gray-200 text-right bg-purple-50/50">Total Realisasi (Gabungan)</th>
+                                <th class="px-4 py-3 border-l border-gray-200 text-right bg-emerald-50/50">% Capaian Agregat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyKonsolidasi" class="divide-y divide-gray-200 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM MODALS -->
+    <div id="globalModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[70] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-6"><h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-2">Peringatan</h3><p id="modalMessage" class="text-sm text-gray-600 leading-relaxed">Pesan</p></div>
+            <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-end gap-3" id="modalActions"></div>
+        </div>
+    </div>
+
+    <!-- EXCEL MODALS -->
+    <div id="excelModalRencana" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[60] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-7xl rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-[#217346] p-3 text-white flex justify-between items-center shrink-0">
+                <span class="font-semibold text-sm">Pratinjau Export: Rekap_Rencana.xlsx</span><button onclick="closeExcelModal('rencana')" class="p-1 hover:text-gray-300">✖</button>
+            </div>
+            <div class="overflow-auto bg-white p-2 grow">
+                <table class="excel-table">
+                    <thead>
+                        <tr><th class="excel-row-num"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th></tr>
+                        <tr><td class="excel-row-num">1</td><td class="col-header">No</td><td class="col-header">Tahun</td><td class="col-header">Nama TPAKD</td><td class="col-header">Kategori Program Kerja</td><td class="col-header">Tema Program</td><td class="col-header">Nama Program</td><td class="col-header">Sasaran Prioritas</td><td class="col-header">Keterangan Program</td><td class="col-header bg-[#dbeafe]">Indikator Target</td><td class="col-header bg-[#dbeafe]">Nilai Target Rencana</td><td class="col-header">Status Laporan</td></tr>
+                    </thead>
+                    <tbody id="excelTbodyRencana"></tbody>
+                </table>
+            </div>
+            <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-between shrink-0">
+                <div class="text-xs text-gray-500 font-medium">Format: Long-Data (Pivot-Ready)</div><button onclick="downloadAsli('rencana')" class="bg-[#217346] text-white px-6 py-2 rounded font-bold text-sm">⬇️ Download .xlsx</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="excelModalRealisasi" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[60] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-7xl rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-[#217346] p-3 text-white flex justify-between items-center shrink-0">
+                <span class="font-semibold text-sm">Pratinjau Export: Capaian_Realisasi.xlsx</span><button onclick="closeExcelModal('realisasi')" class="p-1 hover:text-gray-300">✖</button>
+            </div>
+            <div class="overflow-auto bg-white p-2 grow">
+                <table class="excel-table">
+                    <thead>
+                        <tr><th class="excel-row-num"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th><th>L</th><th>M</th><th>N</th><th>O</th></tr>
+                        <tr><td class="excel-row-num">1</td><td class="col-header">No</td><td class="col-header">Triwulan</td><td class="col-header">Tahun</td><td class="col-header">Nama TPAKD</td><td class="col-header bg-[#e0f2fe]">Versi Rencana</td><td class="col-header">Kategori Program Kerja</td><td class="col-header">Tema Program</td><td class="col-header">Nama Program</td><td class="col-header">Sasaran Prioritas</td><td class="col-header">Ket. Prog/Realisasi</td><td class="col-header bg-[#dbeafe]">Indikator Target</td><td class="col-header bg-[#dbeafe]">Target (Rencana)</td><td class="col-header bg-[#f3e8ff]">Capaian (Aktual)</td><td class="col-header bg-[#fce7f3]">% Capaian</td><td class="col-header">Status Laporan</td></tr>
+                    </thead>
+                    <tbody id="excelTbodyRealisasi"></tbody>
+                </table>
+            </div>
+            <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-between shrink-0">
+                <div class="text-xs text-gray-500 font-medium">Analisis Deviasi Target vs Capaian</div><button onclick="downloadAsli('realisasi')" class="bg-[#217346] text-white px-6 py-2 rounded font-bold text-sm">⬇️ Download .xlsx</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KONSOLIDASI EXCEL MODAL -->
+    <div id="excelModalKonsolidasi" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[60] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-7xl rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-[#217346] p-3 text-white flex justify-between items-center shrink-0">
+                <span class="font-semibold text-sm">Pratinjau Export: Agregat_Eksekutif_Konsolidasi.xlsx</span><button onclick="closeExcelModal('konsolidasi')" class="p-1 hover:text-gray-300">✖</button>
+            </div>
+            <div class="overflow-auto bg-white p-2 grow">
+                <table class="excel-table">
+                    <thead>
+                        <tr><th class="excel-row-num"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+                        <tr><td class="excel-row-num">1</td><td class="col-header">Kategori Program Kerja</td><td class="col-header">Indikator Target</td><td class="col-header bg-[#dbeafe]">Total Target (Gabungan Rencana)</td><td class="col-header bg-[#f3e8ff]">Total Capaian (Gabungan Realisasi)</td><td class="col-header bg-[#fce7f3]">% Capaian Makro</td></tr>
+                    </thead>
+                    <tbody id="excelTbodyKonsolidasi"></tbody>
+                </table>
+            </div>
+            <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-between shrink-0">
+                <div class="text-xs text-gray-500 font-medium">Buku Besar Konsolidasi (Executive View) - Agregasi level Kategori</div><button onclick="downloadAsli('konsolidasi')" class="bg-[#217346] text-white px-6 py-2 rounded font-bold text-sm">⬇️ Download .xlsx</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastMsg" class="fixed bottom-5 right-5 bg-slate-800 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 border-l-4 border-green-500"><span id="toastText" class="font-medium text-sm">Success</span></div>
+
+    <script>
+        const masterData = {
+            kpmr: { label: "Kredit/Pembiayaan Melawan Rentenir (K/PMR)", targets: ['Kegiatan (Peningkatan Literasi keuangan)', 'Jumlah Peserta', 'Total Debitur'] },
+            simpel: { label: "Simpanan Pelajar (SimPel)", targets: ['Kegiatan (Peningkatan Literasi keuangan)', 'Total Nasabah', 'Jumlah Nominal Tabungan'] },
+            lakupandai: { label: "Agen Laku Pandai", targets: ['Kegiatan (Peningkatan Literasi keuangan)', 'Jumlah Peserta', 'Jumlah Agen'] },
+            eki: { label: "Ekosistem Keuangan Inklusi (EKI)", targets: ['Total Debitur', 'Jumlah Nominal Pembiayaan', 'Total Nasabah'] }
+        };
+        const listSasaranPrioritas = ["Pelajar/Mahasiswa", "UMKM", "Masyarakat Umum", "Perempuan", "Petani/Nelayan", "Pekerja Migran", "Penyandang Disabilitas", "Masyarakat 3T", "Aparatur Sipil Negara", "Desa Wisata", "Koperasi", "Desa", "Kecamatan", "Kabupaten", "Provinsi"];
+        
+        // STATE MANAGEMENT ISOLATION
+        function getNewState() {
+            return { programCounter: 0, submittedData: [], approvedBaselineData: [], historyRencana: [], statusRencana: 'Draft', versiRencana: 1, hasApprovedBaseline: false, realisasiData: {}, statusRealisasiMap: {}, globalFilesInfo: { rkpd: '', pengesahan: '' } };
+        }
+
+        const appState = { kab: getNewState(), prov: getNewState() };
+        let ctx = appState.kab; 
+
+        let roleState = 'maker_kab'; 
+        let entitasPelapor = "TPAKD Kab. Malang"; 
+        let entitasChecker = "TPAKD Provinsi Jawa Timur"; 
+        let labelKonsolidasi = "Dasbor Konsolidasi Eksekutif (Provinsi Jatim)";
+        let confirmActionCallback = null;
+
+        // UTILS
+        function showAlert(title, message) { document.getElementById('modalTitle').innerText = title; document.getElementById('modalMessage').innerHTML = message; document.getElementById('modalActions').innerHTML = `<button onclick="closeModal()" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Mengerti</button>`; document.getElementById('globalModal').classList.remove('hidden'); }
+        function showConfirm(title, message, onConfirm) { document.getElementById('modalTitle').innerText = title; document.getElementById('modalMessage').innerHTML = message; confirmActionCallback = onConfirm; document.getElementById('modalActions').innerHTML = `<button onclick="closeModal()" class="px-5 py-2 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50">Batal</button><button onclick="executeConfirm()" class="px-5 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md">Ya, Lanjutkan</button>`; document.getElementById('globalModal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('globalModal').classList.add('hidden'); confirmActionCallback = null; }
+        function executeConfirm() { if(confirmActionCallback) confirmActionCallback(); closeModal(); }
+        function toggleDropdown(event, type, id) { event.stopPropagation(); const dd = document.getElementById(`dropdown_${type}_${id}`); document.querySelectorAll('.multi-dropdown').forEach(el => { if(el.id !== `dropdown_${type}_${id}`) el.classList.add('hidden'); }); dd.classList.toggle('hidden'); }
+        window.closeAllDropdowns = function(event) { if (!event.target.closest('.dropdown-container')) document.querySelectorAll('.multi-dropdown').forEach(el => el.classList.add('hidden')); if (!event.target.closest('#roleDropdownContainer')) document.getElementById('roleMenu')?.classList.add('hidden'); };
+        window.toggleRoleDropdown = function(event) { event.stopPropagation(); document.getElementById('roleMenu').classList.toggle('hidden'); };
+        
+        function updateMultiSelectText(type, id) {
+            const checkboxes = document.querySelectorAll(`input[name="cb_${type}_${id}"]:checked`);
+            const btn = document.getElementById(`btn_${type}_${id}`);
+            if (checkboxes.length === 0) btn.innerHTML = `<span class="text-gray-400">Pilih Sasaran Prioritas...</span>`; else if (checkboxes.length <= 2) btn.innerHTML = `<span class="text-gray-800 font-medium truncate w-full text-left">${Array.from(checkboxes).map(cb => cb.value).join(", ")}</span>`; else btn.innerHTML = `<span class="text-blue-700 font-bold">${checkboxes.length} Pilihan Tercentang</span>`;
+        }
+
+        function filterSasaran(id) {
+            const term = document.getElementById(`search_sasaran_${id}`).value.toLowerCase();
+            const items = document.querySelectorAll(`.sasaran-item-${id}`);
+            items.forEach(el => { const text = el.querySelector('.sasaran-text').innerText.toLowerCase(); el.style.display = text.includes(term) ? 'flex' : 'none'; });
+        }
+
+        function toggleTargetInput(tgtId) {
+            const cb = document.getElementById(`cb_${tgtId}`); const input = document.getElementById(`input_${tgtId}`);
+            if (cb.checked) { input.disabled = false; input.classList.remove('bg-gray-100', 'cursor-not-allowed'); input.classList.add('bg-white'); input.placeholder = "Masukkan Angka Target..."; input.focus(); } 
+            else { input.disabled = true; input.classList.add('bg-gray-100', 'cursor-not-allowed'); input.classList.remove('bg-white'); input.placeholder = "Centang untuk mengisi target..."; input.value = ''; }
+        }
+
+        function getKategoriKeyByLabel(label) { for(let key in masterData) { if(masterData[key].label === label) return key; } return ''; }
+
+        function changeRole(role) {
+            roleState = role; document.getElementById('roleMenu').classList.add('hidden');
+            const rIcon = document.getElementById('roleIcon'); const rText = document.getElementById('roleText'); const rInd = document.getElementById('roleIndicator');
+
+            if (role === 'maker_kab') {
+                ctx = appState.kab; 
+                entitasPelapor = "TPAKD Kab. Malang"; entitasChecker = "TPAKD Prov. Jawa Timur";
+                rIcon.innerText = "👤"; rText.innerText = "Pelapor (Kab/Kota) ▼"; rInd.className = "bg-slate-800 border border-slate-600 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 text-white hover:bg-slate-700 focus:outline-none";
+                document.querySelectorAll('.tab-maker').forEach(el => el.classList.remove('hidden')); document.querySelectorAll('.tab-checker').forEach(el => el.classList.add('hidden')); showToast("Beralih ke View TPAKD Kab/Kota (Pelapor)"); switchTab(1);
+            } else if (role === 'checker_prov') {
+                ctx = appState.kab; 
+                entitasPelapor = "TPAKD Kab. Malang"; entitasChecker = "TPAKD Prov. Jawa Timur"; labelKonsolidasi = "Dasbor Konsolidasi Eksekutif (Provinsi Jatim)";
+                rIcon.innerText = "🛡️"; rText.innerText = "Verifikator (Provinsi) ▼"; rInd.className = "bg-amber-100 border border-amber-300 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 text-amber-800 hover:bg-amber-200 focus:outline-none";
+                document.querySelectorAll('.tab-maker').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab-checker').forEach(el => el.classList.remove('hidden')); showToast("Beralih ke View TPAKD Provinsi (Verifikator)"); switchTab(2);
+            } else if (role === 'maker_prov') {
+                ctx = appState.prov; 
+                entitasPelapor = "TPAKD Prov. Jawa Timur"; entitasChecker = "Sekretariat Pusat";
+                rIcon.innerText = "🏢"; rText.innerText = "Pelapor (Provinsi) ▼"; rInd.className = "bg-indigo-900 border border-indigo-700 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 text-white hover:bg-indigo-800 focus:outline-none";
+                document.querySelectorAll('.tab-maker').forEach(el => el.classList.remove('hidden')); document.querySelectorAll('.tab-checker').forEach(el => el.classList.add('hidden')); showToast("Beralih ke View TPAKD Provinsi (Pelapor ke Pusat)"); switchTab(1);
+            } else if (role === 'checker_pusat') {
+                ctx = appState.prov; 
+                entitasPelapor = "TPAKD Prov. Jawa Timur"; entitasChecker = "Sekretariat Pusat"; labelKonsolidasi = "Dasbor Konsolidasi Eksekutif (Nasional)";
+                rIcon.innerText = "🏛️"; rText.innerText = "Verifikator (Pusat) ▼"; rInd.className = "bg-purple-100 border border-purple-300 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 text-purple-800 hover:bg-purple-200 focus:outline-none";
+                document.querySelectorAll('.tab-maker').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.tab-checker').forEach(el => el.classList.remove('hidden')); showToast("Beralih ke View Sekretariat Pusat (Verifikator)"); switchTab(2);
+            }
+            updateUItext();
+        }
+
+        function updateUItext() {
+            document.querySelectorAll('.lbl-entitas-pelapor').forEach(el => el.innerText = entitasPelapor); document.querySelectorAll('.lbl-entitas-checker').forEach(el => el.innerText = entitasChecker);
+            if(document.getElementById('lbl-konsolidasi-title')) document.getElementById('lbl-konsolidasi-title').innerText = labelKonsolidasi;
+            renderMakerRencanaList(); renderCheckerRencanaList(); renderMakerRealisasiList(); renderCheckerRealisasiList();
+            if(roleState === 'checker_prov' || roleState === 'checker_pusat') renderKonsolidasiTable();
+        }
+
+        // ==========================================
+        // RENDERERS (STATE-DRIVEN UI)
+        // ==========================================
+        function renderMakerRencanaList() {
+            const tbody = document.getElementById('tbodyMakerRencanaList');
+            tbody.innerHTML = ''; let listHTML = '';
+
+            let isAdendumInProgress = (ctx.statusRencana === 'Adendum Draft' || ctx.statusRencana === 'Under Review Adendum' || (ctx.statusRencana === 'Revisi' && ctx.hasApprovedBaseline));
+
+            if(ctx.submittedData.length > 0 || ctx.statusRencana !== 'Draft') {
+                let badgeHtml = ''; let btnActionHtml = `<button onclick="showMakerRencanaForm()" class="text-blue-600 font-medium hover:underline text-xs">Lihat Detail</button>`;
+                
+                if(ctx.statusRencana === 'Under Review') { badgeHtml = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Menunggu Review</span>`; btnActionHtml += ` <button onclick="tarikLaporanRencana()" class="text-red-500 font-medium hover:underline text-xs ml-3 border border-red-200 px-2 py-1 rounded bg-red-50">Tarik Laporan</button>`; } 
+                else if(ctx.statusRencana === 'Under Review Adendum') { badgeHtml = `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Review Adendum</span>`; btnActionHtml += ` <button onclick="tarikLaporanRencana()" class="text-red-500 font-medium hover:underline text-xs ml-3 border border-red-200 px-2 py-1 rounded bg-red-50">Batalkan Adendum</button>`; } 
+                else if(ctx.statusRencana === 'Adendum Draft') { badgeHtml = `<span class="bg-indigo-50 border border-indigo-200 text-indigo-800 px-2.5 py-1 rounded-full text-xs font-bold">Draft Adendum</span>`; btnActionHtml = `<button onclick="showMakerRencanaForm()" class="text-indigo-600 font-bold hover:underline text-xs">Lanjutkan Adendum</button>`; } 
+                else if(ctx.statusRencana === 'Approved') { badgeHtml = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">Approved</span>`; btnActionHtml += ` <button onclick="ajukanAdendum()" class="text-amber-600 font-medium hover:underline text-xs ml-3 border border-amber-200 px-2 py-1 rounded bg-amber-50 shadow-sm">Ajukan Adendum</button>`; } 
+                else if(ctx.statusRencana === 'Revisi') { badgeHtml = `<span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">Need Revision</span>`; btnActionHtml = `<button onclick="showMakerRencanaForm()" class="text-red-600 font-medium hover:underline text-xs">Perbaiki</button>`; } 
+                else { badgeHtml = `<span class="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-bold">Draft</span>`; }
+                
+                let vTampil = isAdendumInProgress ? ctx.versiRencana + 1 : ctx.versiRencana;
+                listHTML += `<tr class="hover:bg-blue-50/30 bg-blue-50/10"><td class="px-6 py-4 font-medium">2026</td><td class="px-6 py-4 font-bold text-blue-900">Rencana Kerja ${entitasPelapor}</td><td class="px-6 py-4 text-center"><span class="font-bold text-slate-800 bg-white px-2 py-1 rounded border shadow-sm">V${vTampil} (Latest)</span></td><td class="px-6 py-4 font-bold text-gray-700">${ctx.submittedData.length} Program</td><td class="px-6 py-4">${badgeHtml}</td><td class="px-6 py-4 text-center">${btnActionHtml}</td></tr>`;
+            }
+
+            if (isAdendumInProgress && ctx.hasApprovedBaseline) {
+                listHTML += `<tr class="hover:bg-gray-50 opacity-90"><td class="px-6 py-4 font-medium">2026</td><td class="px-6 py-4 font-bold text-gray-700">Rencana Kerja ${entitasPelapor}</td><td class="px-6 py-4 text-center"><span class="font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded border shadow-sm">V${ctx.versiRencana}</span></td><td class="px-6 py-4 font-bold text-gray-700">${ctx.approvedBaselineData.length} Program</td><td class="px-6 py-4"><span class="bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">Approved (Active Baseline)</span></td><td class="px-6 py-4 text-center"><button onclick="showAlert('Lihat Arsip', 'Menampilkan Detail Arsip untuk Versi ${ctx.versiRencana}.')" class="text-blue-600 font-medium hover:underline text-xs">Lihat Arsip</button></td></tr>`;
+            }
+
+            for(let i = ctx.historyRencana.length - 1; i >= 0; i--) {
+                const hist = ctx.historyRencana[i];
+                listHTML += `<tr class="hover:bg-gray-50 opacity-70"><td class="px-6 py-4 font-medium">2026</td><td class="px-6 py-4 font-bold text-gray-500">Rencana Kerja ${entitasPelapor}</td><td class="px-6 py-4 text-center"><span class="font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded border">V${hist.versi}</span></td><td class="px-6 py-4">${hist.data.length} Program</td><td class="px-6 py-4"><span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-xs font-bold">Approved (Archived)</span></td><td class="px-6 py-4 text-center"><button onclick="showAlert('Lihat Arsip', 'Menampilkan Arsip untuk Versi ${hist.versi}.')" class="text-gray-500 font-medium hover:underline text-xs">Lihat Arsip</button></td></tr>`;
+            }
+
+            if(listHTML === '') tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-gray-400 italic">Belum ada Laporan Rencana yang disubmit.</td></tr>`;
+            else tbody.innerHTML = listHTML;
+        }
+
+        function renderCheckerRencanaList() {
+            const tbody = document.getElementById('tbodyCheckerRencana'); tbody.innerHTML = '';
+            let listHTML = '';
+            let isAdendumInProgress = (ctx.statusRencana === 'Adendum Draft' || ctx.statusRencana === 'Under Review Adendum' || (ctx.statusRencana === 'Revisi' && ctx.hasApprovedBaseline));
+
+            if(ctx.statusRencana !== 'Draft' && ctx.statusRencana !== 'Adendum Draft' && ctx.submittedData.length > 0) {
+                let badgeHtml = ctx.statusRencana === 'Under Review' ? `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Menunggu Review</span>` : ctx.statusRencana === 'Under Review Adendum' ? `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Review Adendum</span>` : ctx.statusRencana === 'Approved' ? `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">Approved</span>` : `<span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">Need Revision</span>`;
+                let btnLabel = (ctx.statusRencana === 'Under Review' || ctx.statusRencana === 'Under Review Adendum') ? 'Review' : 'Lihat';
+                let vTampil = isAdendumInProgress ? ctx.versiRencana+1 : ctx.versiRencana;
+                listHTML += `<tr class="hover:bg-amber-50 bg-amber-50/20"><td class="px-6 py-4 font-medium text-gray-900">2026</td><td class="px-6 py-4 font-bold text-amber-900">${entitasPelapor}</td><td class="px-6 py-4 text-center font-bold text-blue-700">V${vTampil}</td><td class="px-6 py-4">${ctx.submittedData.length} Program</td><td class="px-6 py-4">${badgeHtml}</td><td class="px-6 py-4 text-center"><button onclick="openReviewDetail('${entitasPelapor}')" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded font-bold text-xs shadow-sm">${btnLabel}</button></td></tr>`;
+            }
+
+            if (isAdendumInProgress && ctx.hasApprovedBaseline) {
+                listHTML += `<tr class="hover:bg-gray-50 opacity-90"><td class="px-6 py-4 font-medium text-gray-900">2026</td><td class="px-6 py-4 font-bold text-gray-700">${entitasPelapor}</td><td class="px-6 py-4 text-center font-bold text-gray-600">V${ctx.versiRencana}</td><td class="px-6 py-4">${ctx.approvedBaselineData.length} Program</td><td class="px-6 py-4"><span class="bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200">Approved (Active Baseline)</span></td><td class="px-6 py-4 text-center"><button onclick="showAlert('Lihat Arsip', 'Lihat arsip V${ctx.versiRencana}.')" class="bg-gray-200 text-gray-600 px-4 py-1.5 rounded font-bold text-xs shadow-sm">Lihat</button></td></tr>`;
+            }
+
+            for(let i = ctx.historyRencana.length - 1; i >= 0; i--) {
+                const hist = ctx.historyRencana[i];
+                listHTML += `<tr class="hover:bg-gray-50 opacity-70"><td class="px-6 py-4 font-medium text-gray-500">2026</td><td class="px-6 py-4 font-bold text-gray-500">${entitasPelapor}</td><td class="px-6 py-4 text-center font-bold text-gray-500">V${hist.versi}</td><td class="px-6 py-4 text-gray-500">${hist.data.length} Program</td><td class="px-6 py-4"><span class="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-xs font-bold">Archived</span></td><td class="px-6 py-4 text-center"><button onclick="showAlert('Lihat Arsip', 'Lihat arsip V${hist.versi}.')" class="bg-gray-200 text-gray-600 px-4 py-1.5 rounded font-bold text-xs shadow-sm">Lihat</button></td></tr>`;
+            }
+            
+            if(listHTML === '') tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Antrean Kosong.</td></tr>`;
+            else tbody.innerHTML = listHTML;
+        }
+
+        function renderMakerRealisasiList() {
+            const tbody = document.getElementById('tbodyMakerRealisasiList'); const infoVersi = document.getElementById('infoVersiAktif'); if(infoVersi) infoVersi.innerText = `V${ctx.versiRencana}`;
+            const keys = Object.keys(ctx.realisasiData).sort((a, b) => b.localeCompare(a));
+            if(keys.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 italic">Belum ada Laporan Realisasi. Klik "+ Input Realisasi Baru".</td></tr>`; return; }
+            tbody.innerHTML = '';
+            keys.forEach(key => {
+                const [tahun, tw] = key.split('-'); const stat = ctx.statusRealisasiMap[key]; const snapshotVersi = ctx.realisasiData[key][0] ? ctx.realisasiData[key][0].versiBaseline : 1; 
+                let badgeHtml = ''; let btnActionHtml = `<button onclick="showMakerRealisasiForm('${key}')" class="text-blue-600 font-medium hover:underline text-xs">Lihat</button>`;
+                if(stat === 'Under Review') { badgeHtml = `<span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Menunggu Review</span>`; btnActionHtml += ` <button onclick="tarikLaporanRealisasi('${key}')" class="text-red-500 font-medium hover:underline text-xs ml-3 border border-red-200 px-2 py-1 rounded bg-red-50">Tarik Laporan</button>`; } 
+                else if(stat === 'Approved') { badgeHtml = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">Approved</span>`; } 
+                else if(stat === 'Revisi') { badgeHtml = `<span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">Need Revision</span>`; btnActionHtml = `<button onclick="showMakerRealisasiForm('${key}')" class="text-red-600 font-medium hover:underline text-xs">Perbaiki</button>`; } 
+                else { badgeHtml = `<span class="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-bold">Draft</span>`; }
+                tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-gray-50"><td class="px-6 py-4 font-medium">${tahun}</td><td class="px-6 py-4 font-bold text-emerald-900">${tw}</td><td class="px-6 py-4 text-center font-bold text-blue-700">V${snapshotVersi}</td><td class="px-6 py-4">${badgeHtml}</td><td class="px-6 py-4 text-center">${btnActionHtml}</td></tr>`);
+            });
+        }
+
+        function renderCheckerRealisasiList() {
+            const tbody = document.getElementById('tbodyCheckerRealisasi'); const keys = Object.keys(ctx.realisasiData).filter(k => ctx.statusRealisasiMap[k] !== 'Draft').sort((a, b) => b.localeCompare(a));
+            if(keys.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400 italic">Antrean Kosong.</td></tr>`; return; }
+            tbody.innerHTML = '';
+            keys.forEach(key => {
+                const [tahun, tw] = key.split('-'); const stat = ctx.statusRealisasiMap[key]; const snapshotVersi = ctx.realisasiData[key][0] ? ctx.realisasiData[key][0].versiBaseline : 1;
+                let badgeHtml = stat === 'Under Review' ? `<span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">Menunggu Review</span>` : stat === 'Approved' ? `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">Approved</span>` : `<span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">Need Revision</span>`;
+                tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-purple-50 transition-colors bg-purple-50/20"><td class="px-6 py-4 font-medium text-gray-900">${tahun}</td><td class="px-6 py-4 font-bold text-purple-900">${tw}</td><td class="px-6 py-4 font-bold text-gray-800">${entitasPelapor}</td><td class="px-6 py-4 text-center font-bold text-blue-700">V${snapshotVersi}</td><td class="px-6 py-4">${badgeHtml}</td><td class="px-6 py-4 text-center"><button onclick="openReviewDetailRealisasi('${entitasPelapor}', '${key}')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded font-bold text-xs shadow-sm">Review</button></td></tr>`);
+            });
+        }
+
+        // ==========================================
+        // MACRO CONSOLIDATION LOGIC
+        // ==========================================
+        function getLatestApprovedActuals(stateObj) {
+            let approvedKeys = Object.keys(stateObj.statusRealisasiMap).filter(k => stateObj.statusRealisasiMap[k] === 'Approved').sort();
+            if (approvedKeys.length === 0) return null;
+            let latestKey = approvedKeys[approvedKeys.length - 1];
+            
+            let actualsMap = {};
+            stateObj.realisasiData[latestKey].forEach(prog => {
+                actualsMap[prog.idProgram] = prog.capaian;
+            });
+            return actualsMap;
+        }
+
+        function renderKonsolidasiTable() {
+            const tbody = document.getElementById('tbodyKonsolidasi'); tbody.innerHTML = '';
+            
+            let allData = []; 
+            let entitasRencana = new Set();
+            let entitasQ1 = new Set();
+            let entitasQ2 = new Set();
+            let entitasQ3 = new Set();
+            let entitasQ4 = new Set();
+
+            // PULL FROM ALL CONTEXTS FOR CONSOLIDATION
+            [appState.prov, appState.kab].forEach(state => {
+                let eName = state === appState.prov ? "TPAKD Prov. Jawa Timur" : "TPAKD Kab. Malang";
+                
+                // Rencana Compliance
+                if (state.hasApprovedBaseline && state.approvedBaselineData.length > 0) {
+                    entitasRencana.add(eName);
+                    
+                    let latestActualsMap = getLatestApprovedActuals(state) || {};
+
+                    state.approvedBaselineData.forEach(item => { 
+                        let actualsForProg = latestActualsMap[item.id] || [];
+                        allData.push({ 
+                            kategori: item.kategori, 
+                            targets: item.targets.map(t => ({label: t.label, value: Number(t.value)})),
+                            actuals: item.targets.map(t => {
+                                let foundAct = actualsForProg.find(a => a.label === t.label);
+                                return { label: t.label, value: foundAct ? Number(foundAct.actualValue) : 0 };
+                            })
+                        }); 
+                    });
+                }
+
+                // Realisasi Compliance (Only Approved)
+                for(let key in state.statusRealisasiMap) {
+                    if(state.statusRealisasiMap[key] === 'Approved') {
+                        if(key.includes('Q1')) entitasQ1.add(eName);
+                        if(key.includes('Q2')) entitasQ2.add(eName);
+                        if(key.includes('Q3')) entitasQ3.add(eName);
+                        if(key.includes('Q4')) entitasQ4.add(eName);
+                    }
+                }
+            });
+
+            const totalEntitasMax = roleState === 'checker_pusat' ? 38 : 39; 
+            
+            let agregatData = {}; // agregatData[Kategori][Indikator] = { target: 0, actual: 0 }
+            let uniqueKategori = new Set();
+            let totalProgramsCount = 0;
+
+            allData.forEach(item => {
+                uniqueKategori.add(item.kategori);
+                totalProgramsCount++;
+                const kat = item.kategori;
+                if(!agregatData[kat]) agregatData[kat] = {};
+                
+                // Add Targets
+                item.targets.forEach(tgt => { 
+                    if(!agregatData[kat][tgt.label]) agregatData[kat][tgt.label] = { target: 0, actual: 0 }; 
+                    agregatData[kat][tgt.label].target += Number(tgt.value); 
+                });
+
+                // Add Actuals
+                if (item.actuals) {
+                    item.actuals.forEach(act => {
+                        if(agregatData[kat][act.label]) agregatData[kat][act.label].actual += Number(act.value);
+                    });
+                }
+            });
+
+            document.getElementById('statPatuhRencana').innerHTML = `${entitasRencana.size}<span class="text-sm font-normal text-slate-400">/${totalEntitasMax}</span>`;
+            document.getElementById('statPatuhQ1').innerHTML = `${entitasQ1.size}<span class="text-sm font-normal text-slate-400">/${totalEntitasMax}</span>`;
+            document.getElementById('statPatuhQ2').innerHTML = `${entitasQ2.size}<span class="text-sm font-normal text-slate-400">/${totalEntitasMax}</span>`;
+            document.getElementById('statPatuhQ3').innerHTML = `${entitasQ3.size}<span class="text-sm font-normal text-slate-400">/${totalEntitasMax}</span>`;
+            document.getElementById('statPatuhQ4').innerHTML = `${entitasQ4.size}<span class="text-sm font-normal text-slate-400">/${totalEntitasMax}</span>`;
+
+            document.getElementById('statKategori').innerText = `${uniqueKategori.size} Kategori Program Kerja`; 
+            document.getElementById('statTotalProgKon').innerText = `${totalProgramsCount} Program`;
+
+            if(Object.keys(agregatData).length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400 italic">Belum ada data konsolidasi yang tersedia.</td></tr>`; return; }
+            
+            for(let kat in agregatData) {
+                for(let ind in agregatData[kat]) {
+                    const totalTarget = agregatData[kat][ind].target;
+                    const totalActual = agregatData[kat][ind].actual;
+                    const persen = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '-';
+                    const colorClass = (totalTarget > 0 && (totalActual / totalTarget) >= 1) ? 'text-green-600 bg-green-50' : (totalActual > 0 ? 'text-amber-600 bg-amber-50' : 'text-gray-500 bg-gray-50');
+
+                    const tr = `
+                    <tr class="hover:bg-indigo-50/30 transition-colors">
+                        <td class="px-4 py-4 text-xs font-bold text-gray-600 bg-gray-50 border-r border-gray-200 align-top">${kat}</td>
+                        <td class="px-4 py-4 text-sm font-semibold text-gray-700 border-r border-gray-200 align-top">${ind}</td>
+                        <td class="px-4 py-4 font-bold text-blue-700 border-r border-gray-200 text-right bg-blue-50/50">${totalTarget.toLocaleString('id-ID')}</td>
+                        <td class="px-4 py-4 font-bold text-purple-700 border-r border-gray-200 text-right bg-purple-50/50">${totalActual.toLocaleString('id-ID')}</td>
+                        <td class="px-4 py-4 font-extrabold text-right border-l border-gray-100 ${colorClass}">${persen}</td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', tr);
+                }
+            }
+        }
+
+        // ==========================================
+        // RECALL & ADENDUM
+        // ==========================================
+        function tarikLaporanRencana() { showConfirm("Tarik Laporan", "Apakah Anda yakin ingin menarik laporan ini? Status akan kembali menjadi Draft.", () => { ctx.statusRencana = ctx.statusRencana === 'Under Review Adendum' ? 'Adendum Draft' : 'Draft'; showToast("Laporan ditarik kembali ke Draft."); updateUItext(); showMakerRencanaForm(); }); }
+        
+        function ajukanAdendum() { 
+            showConfirm("Ajukan Perubahan Rencana (Adendum)", "Mengajukan Adendum berarti merubah baseline target. Laporan triwulan sebelumnya tetap aman di versi lama.", () => { 
+                
+                ctx.statusRencana = 'Adendum Draft'; 
+                ctx.submittedData = JSON.parse(JSON.stringify(ctx.approvedBaselineData)); 
+                showToast("Mode Adendum diaktifkan. Data lama dimuat ulang."); 
+                updateUItext(); showMakerRencanaForm(); 
+                
+                document.getElementById('feedbackBanner').innerHTML = `<span class="text-indigo-500 text-xl">ℹ️</span><div><h4 class="font-bold text-indigo-800 text-sm">Mode Adendum Aktif (Menyusun Versi ${ctx.versiRencana+1})</h4><p class="text-sm text-indigo-600 mt-1">Ubah form yang diperlukan dan Wajib unggah dokumen revisi terbaru.</p></div>`; document.getElementById('feedbackBanner').className = "mb-6 bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex gap-3 items-start fade-in"; 
+            }); 
+        }
+        
+        function tarikLaporanRealisasi(key) { showConfirm("Tarik Realisasi", `Yakin menarik Realisasi ini?`, () => { ctx.statusRealisasiMap[key] = 'Draft'; showToast(`Ditarik ke Draft.`); updateUItext(); showMakerRealisasiForm(key); }); }
+
+        // SWITCHERS
+        function showMakerRencanaForm() { 
+            document.getElementById('view1_list').classList.add('hidden'); document.getElementById('view1_form').classList.remove('hidden'); 
+            document.getElementById('programListContainer').innerHTML = ''; // CLEAR DOM CONTAMINATION
+            
+            if (ctx.statusRencana === 'Draft' && ctx.submittedData.length === 0) {
+                ctx.programCounter = 0; document.getElementById('globalFileRkpd').value = ''; document.getElementById('globalFilePengesahan').value = ''; tambahProgram(); 
+            } else {
+                ctx.programCounter = ctx.submittedData.length > 0 ? Math.max(...ctx.submittedData.map(p => Number(p.id))) : 0; 
+                ctx.submittedData.forEach(p => { 
+                    tambahProgram(p.id); 
+                    document.getElementById(`kategori_${p.id}`).value = getKategoriKeyByLabel(p.kategori); onKategoriChange(p.id); 
+                    document.getElementById(`program_${p.id}`).value = p.program; document.getElementById(`tema_${p.id}`).value = p.tema !== '-' ? p.tema : ''; document.getElementById(`ket_prog_${p.id}`).value = p.keterangan || '';
+                    if (p.sasaran) { p.sasaran.forEach(sas => { const cb = document.querySelector(`input[name="cb_sasaran_${p.id}"][value="${sas}"]`); if(cb) cb.checked = true; }); updateMultiSelectText('sasaran', p.id); }
+                    if (p.targets) { p.targets.forEach(tgt => { const input = document.querySelector(`input[name="target_val_${p.id}"][data-label="${tgt.label}"]`); if(input) { const tgtId = input.id.replace('input_', ''); document.getElementById(`cb_${tgtId}`).checked = true; toggleTargetInput(tgtId); input.value = tgt.value; } }); }
+                }); 
+                if (document.getElementById('programListContainer').innerHTML === '') { ctx.programCounter = 0; tambahProgram(); }
+            }
+        }
+        
+        function hideMakerRencanaForm() { document.getElementById('view1_form').classList.add('hidden'); document.getElementById('view1_list').classList.remove('hidden'); if(ctx.statusRencana !== 'Adendum Draft' && ctx.statusRencana !== 'Revisi') document.getElementById('feedbackBanner').classList.add('hidden'); }
+        function showMakerRealisasiForm(keyToEdit = null) {
+            if(!ctx.hasApprovedBaseline) return showAlert("Akses Ditolak", "Rencana harus di-Approve dulu.");
+            document.getElementById('view3_list').classList.add('hidden'); document.getElementById('view3_form').classList.remove('hidden'); document.getElementById('labelVersiFormRealTitle').innerText = `V${ctx.versiRencana}`;
+            if(keyToEdit) { const [tahun, tw] = keyToEdit.split('-'); document.getElementById('tahunSelect').value = tahun; document.getElementById('triwulanSelect').value = tw; generateTableRealisasi(); } 
+            else { document.getElementById('triwulanSelect').value = ""; document.getElementById('tableRealisasiContainer').classList.add('hidden'); document.getElementById('actionRealisasi').classList.add('hidden'); if(document.getElementById('actionRealisasiReadOnly')) document.getElementById('actionRealisasiReadOnly').classList.add('hidden'); }
+        }
+        function hideMakerRealisasiForm() { document.getElementById('view3_form').classList.add('hidden'); document.getElementById('view3_list').classList.remove('hidden'); }
+
+        // INPUT RENCANA
+        function tambahProgram(forceId = null) {
+            let id; if(forceId) id = forceId; else { ctx.programCounter++; id = ctx.programCounter; }
+            let katOpts = '<option value="">-- Pilih Kategori Program Kerja --</option>'; for (const key in masterData) { katOpts += `<option value="${key}">${masterData[key].label}</option>`; }
+            let cbSasaranHtml = listSasaranPrioritas.map(item => `<label class="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm sasaran-item-${id}"><input type="checkbox" name="cb_sasaran_${id}" value="${item}" class="mr-2" onchange="updateMultiSelectText('sasaran', ${id})"><span class="sasaran-text">${item}</span></label>`).join('');
+
+            document.getElementById('programListContainer').insertAdjacentHTML('beforeend', `
+            <div id="card_rencana_${id}" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 fade-in">
+                <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4"><h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Prog #${id}</span> Rincian Program</h3><button type="button" onclick="hapusProgram(${id})" class="text-red-500 hover:text-red-700 text-sm font-semibold">🗑️ Hapus</button></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Kategori Program Kerja <span class="text-red-500">*</span></label><select id="kategori_${id}" onchange="onKategoriChange(${id})" class="w-full p-2.5 border border-gray-300 rounded focus:ring-blue-500 text-sm bg-gray-50">${katOpts}</select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Program Kerja <span class="text-red-500">*</span></label><input type="text" id="program_${id}" class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded text-sm text-gray-800 cursor-not-allowed focus:ring-blue-500" placeholder="Pilih kategori terlebih dahulu" disabled></div>
+                    <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tema Program</label><input type="text" id="tema_${id}" list="temaList_opts" class="w-full p-2.5 bg-white border border-gray-300 rounded text-sm text-gray-800 focus:ring-blue-500" placeholder="Ketik atau pilih tema program..."></div>
+                    <div class="dropdown-container relative"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Sasaran Prioritas <span class="text-red-500">*</span></label><button type="button" id="btn_sasaran_${id}" onclick="toggleDropdown(event, 'sasaran', ${id})" class="w-full p-2.5 bg-white border border-gray-300 rounded text-sm text-left flex justify-between items-center focus:ring-2 focus:ring-blue-500 focus:outline-none"><span class="text-gray-400">Pilih Sasaran Prioritas...</span><span class="text-gray-400 text-xs">▼</span></button>
+                        <div id="dropdown_sasaran_${id}" class="multi-dropdown hidden absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded shadow-lg overflow-hidden"><div class="p-2 border-b border-gray-100 bg-gray-50 sticky top-0"><input type="text" id="search_sasaran_${id}" onkeyup="filterSasaran(${id})" placeholder="🔍 Cari sasaran..." class="w-full text-xs p-1.5 border border-gray-300 rounded focus:ring-blue-500"></div><div class="p-1 max-h-40 overflow-y-auto custom-scrollbar" id="list_sasaran_${id}">${cbSasaranHtml}</div></div>
+                    </div>
+                    <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Keterangan / Definisi Singkat Program</label><textarea id="ket_prog_${id}" class="w-full p-2.5 bg-white border border-gray-300 rounded text-sm text-gray-800 focus:ring-blue-500 min-h-[60px] resize-none" placeholder="Jelaskan secara singkat apa itu program ini..."></textarea></div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-2">
+                    <label class="block text-xs font-bold text-blue-800 uppercase mb-3 border-b border-blue-200 pb-2">Pilihan Target (Sesuai Kategori)</label>
+                    <div id="target_container_${id}" class="space-y-3"><p class="text-xs text-gray-400 italic">Pilih Kategori untuk memunculkan target.</p></div>
+                </div>
+            </div>`);
+        }
+
+        function hapusProgram(id) { const card = document.getElementById(`card_rencana_${id}`); if(card) { card.remove(); if(document.querySelectorAll('[id^="card_rencana_"]').length === 0) { tambahProgram(); showToast("Form direset."); } } }
+
+        function onKategoriChange(id) {
+            const katVal = document.getElementById(`kategori_${id}`).value; const progInput = document.getElementById(`program_${id}`); const targetContainer = document.getElementById(`target_container_${id}`); targetContainer.innerHTML = '';
+            if (katVal && masterData[katVal]) {
+                progInput.disabled = false; progInput.classList.remove('bg-gray-100', 'cursor-not-allowed'); progInput.classList.add('bg-white'); progInput.placeholder = "Ketik Nama Program Kerja Secara Bebas...";
+                const arrTargets = masterData[katVal].targets;
+                targetContainer.insertAdjacentHTML('beforeend', `<div class="text-[11px] text-gray-500 mb-3 font-medium">Centang (☑️) minimal 1 indikator target yang relevan dengan program ini:</div>`);
+                arrTargets.forEach((tgtName, idx) => {
+                    const tgtId = `tgt_${id}_${idx}`;
+                    targetContainer.insertAdjacentHTML('beforeend', `<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 fade-in p-3 border border-gray-100 rounded-lg hover:bg-gray-50"><div class="w-full sm:w-1/2 flex items-center gap-3"><input type="checkbox" id="cb_${tgtId}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer" onchange="toggleTargetInput('${tgtId}')"><label for="cb_${tgtId}" class="text-sm font-semibold text-gray-700 cursor-pointer flex-1">${tgtName}</label></div><div class="w-full sm:w-1/2 flex relative"><input type="number" id="input_${tgtId}" name="target_val_${id}" data-label="${tgtName}" class="w-full p-2.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm pl-4 font-bold text-gray-800 bg-gray-100 cursor-not-allowed" placeholder="Centang untuk mengisi..." disabled></div></div>`);
+                });
+            } else { progInput.disabled = true; progInput.classList.add('bg-gray-100', 'cursor-not-allowed'); progInput.classList.remove('bg-white'); progInput.value = ''; progInput.placeholder = "Pilih kategori terlebih dahulu"; targetContainer.innerHTML = '<p class="text-xs text-gray-400 italic">Pilih Kategori untuk memunculkan target.</p>'; }
+        }
+
+        function submitRencana() {
+            let tempSubmitted = []; let valid = true;
+            const fRkpd = document.getElementById('globalFileRkpd').files[0]; const fPengesahan = document.getElementById('globalFilePengesahan').files[0];
+            if(ctx.statusRencana !== 'Adendum Draft' && (!fRkpd || !fPengesahan)) return showAlert("Validasi Gagal", "Mohon upload RKPD dan Lembar Pengesahan.");
+
+            document.querySelectorAll('[id^="card_rencana_"]').forEach(card => {
+                const id = card.id.split('_')[2]; const kat = document.getElementById(`kategori_${id}`).value; const progName = document.getElementById(`program_${id}`).value.trim(); const temaName = document.getElementById(`tema_${id}`).value.trim(); const ketProg = document.getElementById(`ket_prog_${id}`).value.trim(); const cbSasaran = Array.from(document.querySelectorAll(`input[name="cb_sasaran_${id}"]:checked`)).map(cb => cb.value);
+                const targetInputs = Array.from(document.querySelectorAll(`input[name="target_val_${id}"]`)).filter(inp => !inp.disabled);
+                let targets = []; targetInputs.forEach(inp => { if(!inp.value) valid = false; targets.push({ label: inp.dataset.label, value: inp.value }); });
+                if (!kat || !progName || targets.length === 0 || cbSasaran.length === 0) valid = false;
+                else tempSubmitted.push({ id: id, kategori: masterData[kat].label, tema: temaName || '-', program: progName, sasaran: cbSasaran, keterangan: ketProg, targets: targets, tanggapan: '' });
+            });
+
+            if (!valid || tempSubmitted.length === 0) return showAlert("Validasi Gagal", "Pastikan Nama Program diisi, minimal 1 Sasaran Prioritas dicentang, dan minimal 1 Target dicentang & diisi angkanya pada setiap form.");
+            ctx.submittedData = tempSubmitted; if(fRkpd) ctx.globalFilesInfo.rkpd = fRkpd.name; if(fPengesahan) ctx.globalFilesInfo.pengesahan = fPengesahan.name;
+            const dl = document.getElementById('temaList_opts'); ctx.submittedData.forEach(p => { if(p.tema !== '-' && !Array.from(dl.options).some(opt => opt.value === p.tema)) dl.insertAdjacentHTML('beforeend', `<option value="${p.tema}">`); });
+            if(ctx.statusRencana === 'Adendum Draft') { ctx.statusRencana = 'Under Review Adendum'; showToast(`Adendum Berhasil dikirim ke Verifikator!`); } else { ctx.statusRencana = 'Under Review'; showToast(`Rencana Berhasil diajukan!`); }
+            hideMakerRencanaForm(); updateUItext();
+            document.getElementById('tab2').classList.remove('locked-tab', 'text-gray-400'); document.getElementById('tab2').classList.add('text-amber-600'); document.getElementById('badgeTab2').classList.remove('hidden');
+        }
+
+        // VIEW 2: VERIF RENCANA
+        function openReviewDetail(tpakdName) {
+            document.getElementById('listTPAKDView').classList.add('hidden'); document.getElementById('detailReviewView').classList.remove('hidden'); document.getElementById('judulTPAKDTinjau').innerText = tpakdName; document.getElementById('labelVersiReview').innerText = `V${ctx.statusRencana === 'Under Review Adendum' ? ctx.versiRencana+1 : ctx.versiRencana}`; document.getElementById('linkRkpdPreview').innerText = ctx.globalFilesInfo.rkpd; document.getElementById('linkPengesahanPreview').innerText = ctx.globalFilesInfo.pengesahan;
+            const container = document.getElementById('reviewListContainer'); container.innerHTML = '';
+            ctx.submittedData.forEach(data => {
+                let tgtHtml = data.targets.map(t => `<div class="flex justify-between bg-white px-3 py-1.5 border border-gray-200 rounded mb-1.5"><span class="text-[10px] uppercase text-gray-500 font-bold">${t.label}</span><span class="font-bold text-blue-700">${t.value}</span></div>`).join('');
+                container.insertAdjacentHTML('beforeend', `<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col md:flex-row gap-6"><div class="w-full md:w-1/2"><h4 class="font-bold text-lg text-gray-800 mb-1">${data.program}</h4><p class="text-xs text-gray-500 mb-1"><span class="font-bold">Kategori:</span> ${data.kategori} <br><span class="font-bold">Tema:</span> ${data.tema}</p><p class="text-[10px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200 mb-2 inline-block"><span class="font-bold text-slate-600">Sasaran:</span> ${data.sasaran.join(', ')}</p><p class="text-[11px] text-gray-600 italic mb-4 border-l-2 border-amber-300 pl-2">"${data.keterangan || 'Tidak ada deskripsi'}"</p><div class="bg-gray-50 p-3 rounded-lg shadow-inner"><p class="text-[10px] text-gray-400 font-bold uppercase mb-2">Target Disubmit</p>${tgtHtml}</div></div><div class="w-full md:w-1/2 md:pl-6"><label class="block text-sm font-bold text-gray-700 mb-2">💬 Catatan Revisi Program</label><textarea id="input_tanggapan_${data.id}" class="w-full p-3 border border-amber-300 rounded text-sm h-full min-h-[120px] bg-amber-50/30 resize-none">${data.tanggapan}</textarea></div></div>`);
+            });
+        }
+        function backToList(tipe) {
+            if(tipe === 'Rencana'){ document.getElementById('detailReviewView').classList.add('hidden'); document.getElementById('listTPAKDView').classList.remove('hidden'); } 
+            else { document.getElementById('detailRealisasiReviewView').classList.add('hidden'); document.getElementById('listTPAKDRealisasiView').classList.remove('hidden'); }
+        }
+        function kembalikanRevisi() {
+            ctx.statusRencana = ctx.statusRencana === 'Under Review Adendum' ? 'Adendum Draft' : 'Revisi'; ctx.submittedData.forEach(data => { data.tanggapan = document.getElementById(`input_tanggapan_${data.id}`).value; });
+            showToast("⚠️ Dikembalikan ke Pelapor!"); updateUItext(); document.getElementById('tab2').classList.add('locked-tab', 'text-gray-400'); document.getElementById('badgeTab2').classList.add('hidden'); setTimeout(() => backToList('Rencana'), 1000);
+        }
+        function approveRencana() {
+            if(ctx.statusRencana === 'Under Review Adendum') { 
+                ctx.historyRencana.push({ versi: ctx.versiRencana, status: 'Approved (Archived)', data: JSON.parse(JSON.stringify(ctx.approvedBaselineData)), rkpd: ctx.globalFilesInfo.rkpd, pengesahan: ctx.globalFilesInfo.pengesahan });
+                ctx.versiRencana++; 
+                showToast(`✅ Adendum di-Approve! Baseline diperbarui ke Versi ${ctx.versiRencana}.`); 
+            } else { showToast("✅ Rencana di-Approve! Baseline Terkunci (V1)."); }
+            
+            ctx.statusRencana = 'Approved'; ctx.hasApprovedBaseline = true; ctx.approvedBaselineData = JSON.parse(JSON.stringify(ctx.submittedData)); updateUItext();
+            document.getElementById('tab3').classList.remove('locked-tab', 'text-gray-400'); document.getElementById('tab3').classList.add('text-emerald-600'); document.getElementById('iconTab3').innerText = '🔓'; document.getElementById('badgeTab2').classList.add('hidden'); setTimeout(() => backToList('Rencana'), 1000);
+        }
+
+        // VIEW 3: INPUT REALISASI
+        let selectedKey = "";
+        function generateTableRealisasi() {
+            const tahun = document.getElementById('tahunSelect').value; const tw = document.getElementById('triwulanSelect').value;
+            const container = document.getElementById('tableRealisasiContainer'); const tbody = document.getElementById('tbodyRealisasi'); const actionDiv = document.getElementById('actionRealisasi');
+            if(!tw || !tahun) { container.classList.add('hidden'); actionDiv.classList.add('hidden'); if(document.getElementById('actionRealisasiReadOnly')) document.getElementById('actionRealisasiReadOnly').classList.add('hidden'); return; }
+            selectedKey = `${tahun}-${tw}`; tbody.innerHTML = ''; const currentStatus = ctx.statusRealisasiMap[selectedKey] || 'Draft';
+
+            if(currentStatus === 'Approved' || currentStatus === 'Under Review') {
+                const listData = ctx.realisasiData[selectedKey]; const histVersi = listData[0] ? listData[0].versiBaseline : 1;
+                document.getElementById('labelVersiFormRealTitle').innerText = `Ref: V${histVersi}`; document.getElementById('labelVersiFormRealTable').innerText = `V${histVersi}`;
+                listData.forEach(item => {
+                    let rkHtml = item.capaian.map(c => `<div class="mb-3"><p class="text-[10px] font-bold text-gray-500 uppercase leading-tight">${c.label}</p><p class="font-extrabold text-blue-700 text-sm">${c.targetValue}</p></div>`).join('');
+                    let inputHtml = item.capaian.map(c => `<div class="mb-3"><p class="text-[10px] font-bold text-emerald-700 uppercase leading-tight mb-1 truncate" title="${c.label}">${c.label}</p><p class="font-bold text-emerald-900 text-sm">${c.actualValue}</p></div>`).join('');
+                    tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-gray-50 align-top"><td class="px-4 py-4 border-r border-gray-100"><p class="font-bold text-gray-800 text-sm mb-1">${item.program}</p><p class="text-[10px] text-gray-500 mb-1 leading-tight"><span class="font-bold text-gray-700">Tema:</span> ${item.tema || '-'} <br><span class="font-bold text-gray-700">Sasaran:</span> ${item.sasaran ? item.sasaran.join(', ') : '-'}</p><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 mt-3">Bukti (${tw})</label><span class="text-xs text-blue-600 underline">${item.fileRealisasi}</span></td><td class="px-4 py-4 bg-gray-50">${rkHtml}</td><td class="px-4 py-4 bg-emerald-50/50">${inputHtml}</td><td class="px-4 py-4 border-l border-gray-100 text-sm text-gray-700 italic">${item.keterangan || '-'}</td></tr>`);
+                });
+                container.classList.remove('hidden'); actionDiv.classList.add('hidden'); if(document.getElementById('actionRealisasiReadOnly')) document.getElementById('actionRealisasiReadOnly').classList.remove('hidden');
+            } else {
+                document.getElementById('labelVersiFormRealTitle').innerText = `V${ctx.versiRencana}`; document.getElementById('labelVersiFormRealTable').innerText = `V${ctx.versiRencana}`;
+                
+                // Cari data realisasi terlama dari versi sebelumnya (jika ada) untuk pre-fill
+                let latestActualsMap = {};
+                let oldApprovedKeys = Object.keys(ctx.statusRealisasiMap).filter(k => ctx.statusRealisasiMap[k] === 'Approved').sort();
+                if(oldApprovedKeys.length > 0) {
+                    ctx.realisasiData[oldApprovedKeys[oldApprovedKeys.length - 1]].forEach(prog => { latestActualsMap[prog.idProgram] = prog; });
+                }
+
+                ctx.approvedBaselineData.forEach(data => {
+                    let savedData = ctx.realisasiData[selectedKey] ? ctx.realisasiData[selectedKey].find(item => item.idProgram === data.id) : null;
+                    if(!savedData && latestActualsMap[data.id]) savedData = latestActualsMap[data.id]; // Pre-fill dengan data lama jika form masih kosong
+                    
+                    let rkHtml = data.targets.map(t => `<div class="mb-3"><p class="text-[10px] font-bold text-gray-500 uppercase leading-tight">${t.label}</p><p class="font-extrabold text-blue-700 text-sm">${t.value}</p></div>`).join('');
+                    let inputHtml = data.targets.map(t => { let val = savedData ? (savedData.capaian.find(c => c.label === t.label)?.actualValue || '') : ''; return `<div class="mb-3"><label class="block text-[10px] font-bold text-emerald-700 uppercase leading-tight mb-1 truncate">${t.label}</label><input type="number" name="real_val_${data.id}_${selectedKey}" value="${val}" data-label="${t.label}" data-target="${t.value}" class="w-full p-2 border border-emerald-300 rounded text-sm font-bold text-emerald-900 bg-white" placeholder="Aktual..."></div>`; }).join('');
+                    tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-gray-50 align-top"><td class="px-4 py-4 border-r border-gray-100"><p class="font-bold text-gray-800 text-sm mb-1">${data.program}</p><p class="text-[10px] text-gray-500 mb-1 leading-tight"><span class="font-bold text-gray-700">Tema:</span> ${data.tema} <br><span class="font-bold text-gray-700">Sasaran:</span> ${data.sasaran.join(', ')}</p><label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 mt-3">Upload Bukti (${tw})</label><input type="file" id="file_real_${data.id}_${selectedKey}" class="w-full text-[10px] text-gray-500">${savedData && savedData.fileRealisasi ? `<p class="text-[9px] text-gray-400 mt-1">File tersimpan: ${savedData.fileRealisasi}</p>` : ''}</td><td class="px-4 py-4 bg-gray-50">${rkHtml}</td><td class="px-4 py-4 bg-emerald-50/50">${inputHtml}</td><td class="px-4 py-4 border-l border-gray-100"><textarea id="ket_real_${data.id}_${selectedKey}" class="w-full p-2 border border-gray-300 rounded text-sm h-full min-h-[100px] resize-none" placeholder="Kendala / Tambahan Info...">${savedData ? savedData.keterangan : ''}</textarea></td></tr>`);
+                });
+                container.classList.remove('hidden'); actionDiv.classList.remove('hidden'); if(document.getElementById('actionRealisasiReadOnly')) document.getElementById('actionRealisasiReadOnly').classList.add('hidden');
+            }
+        }
+        function submitRealisasi() {
+            let valid = true; let tempRealisasi = [];
+            ctx.approvedBaselineData.forEach(data => {
+                const inputs = Array.from(document.querySelectorAll(`input[name="real_val_${data.id}_${selectedKey}"]`));
+                let capaianArr = []; inputs.forEach(inp => { if(!inp.value) valid=false; capaianArr.push({ label: inp.dataset.label, targetValue: inp.dataset.target, actualValue: inp.value }); });
+                const fileInput = document.getElementById(`file_real_${data.id}_${selectedKey}`).files[0]; const ket = document.getElementById(`ket_real_${data.id}_${selectedKey}`).value;
+                const existingFileData = ctx.realisasiData[selectedKey] ? ctx.realisasiData[selectedKey].find(x => x.idProgram == data.id) : null;
+                if (!fileInput && (!existingFileData || !existingFileData.fileRealisasi)) valid = false;
+                tempRealisasi.push({ idProgram: data.id, program: data.program, kategori: data.kategori, tema: data.tema, sasaran: data.sasaran, capaian: capaianArr, fileRealisasi: fileInput ? fileInput.name : (existingFileData ? existingFileData.fileRealisasi : ''), keterangan: ket, versiBaseline: ctx.versiRencana });
+            });
+            if(!valid) return showAlert("Validasi Gagal", "Lengkapi semua isian aktual & file wajib pada SEMUA program.");
+            ctx.realisasiData[selectedKey] = tempRealisasi; ctx.statusRealisasiMap[selectedKey] = 'Under Review'; showToast(`Realisasi Berhasil Dikirim!`);
+            hideMakerRealisasiForm(); updateUItext(); document.getElementById('tab4').classList.remove('locked-tab', 'text-gray-400'); document.getElementById('tab4').classList.add('text-purple-600'); document.getElementById('badgeTab4').classList.remove('hidden');
+        }
+
+        // VIEW 4: VERIFIKASI REALISASI
+        function openReviewDetailRealisasi(tpakdName, targetKey = null) {
+            if(targetKey) selectedKey = targetKey; 
+            document.getElementById('listTPAKDRealisasiView').classList.add('hidden'); document.getElementById('detailRealisasiReviewView').classList.remove('hidden');
+            document.getElementById('judulTPAKDTinjauRealisasi').innerText = tpakdName; const [tahun, tw] = selectedKey.split('-'); document.getElementById('labelTwReview').innerText = `(${tw} ${tahun})`;
+            const listData = ctx.realisasiData[selectedKey]; document.getElementById('labelVersiReviewReal').innerText = `Ref: V${listData[0] ? listData[0].versiBaseline : 1}`;
+            const tbody = document.getElementById('tbodyReviewRealisasi'); tbody.innerHTML = '';
+            listData.forEach(item => {
+                let combineHtml = item.capaian.map((c) => {
+                    const persen = Math.round((c.actualValue / c.targetValue) * 100); const colorClass = persen >= 100 ? 'text-green-600 bg-green-50' : (persen >= 50 ? 'text-amber-600 bg-amber-50' : 'text-red-600 bg-red-50');
+                    return `<div class="border-b border-gray-100 py-2 last:border-0"><p class="text-[9px] text-gray-500 uppercase font-bold mb-1 truncate">${c.label}</p><div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500">Target: <b class="text-blue-700">${c.targetValue}</b></span><span class="text-xs text-gray-500">Aktual: <b class="text-purple-700">${c.actualValue}</b></span><span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}">${persen}%</span></div></div>`;
+                }).join('');
+                tbody.insertAdjacentHTML('beforeend', `<tr class="align-top hover:bg-purple-50/20"><td class="px-4 py-4 border-r border-gray-100"><p class="font-bold text-gray-800 text-sm mb-1">${item.program}</p><p class="text-[10px] text-gray-500 mb-1 leading-tight"><span class="font-bold text-gray-700">Tema:</span> ${item.tema || '-'} <br><span class="font-bold text-gray-700">Sasaran:</span> ${item.sasaran ? item.sasaran.join(', ') : '-'}</p><p class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded inline-block mt-2 mb-3">📎 Bukti: <span class="underline">${item.fileRealisasi}</span></p></td><td class="px-4 py-3 bg-gray-50">${combineHtml}</td><td class="px-4 py-4 text-xs text-gray-600 italic border-x border-gray-100">${item.keterangan || '-'}</td><td class="px-4 py-4"><textarea class="w-full p-2 border border-purple-300 rounded text-sm h-full min-h-[80px] bg-purple-50/50 resize-none"></textarea></td></tr>`);
+            });
+        }
+        function approveRealisasi() { ctx.statusRealisasiMap[selectedKey] = 'Approved'; showToast(`✅ Realisasi di-Approve!`); document.getElementById('badgeTab4').classList.add('hidden'); updateUItext(); setTimeout(() => backToList('Realisasi'), 1000); }
+        function kembalikanRevisiRealisasi() { ctx.statusRealisasiMap[selectedKey] = 'Revisi'; showToast("⚠️ Dikembalikan ke Pelapor!"); document.getElementById('badgeTab4').classList.add('hidden'); updateUItext(); setTimeout(() => backToList('Realisasi'), 1000); }
+
+        // NAVIGATION & EXCEL MODALS
+        function switchTab(tabIndex) {
+            const views = [document.getElementById('view1'), document.getElementById('view2'), document.getElementById('view3'), document.getElementById('view4'), document.getElementById('view5')];
+            const tabs = [document.getElementById('tab1'), document.getElementById('tab2'), document.getElementById('tab3'), document.getElementById('tab4'), document.getElementById('tab5')];
+            views.forEach((v, i) => {
+                if (i === tabIndex - 1) {
+                    v.classList.remove('hidden'); v.classList.add('block'); tabs[i].classList.add('border-b-2');
+                    if(tabIndex === 1 || tabIndex === 3) { tabs[i].classList.add('border-blue-700', 'text-blue-700'); if(tabIndex === 1) hideMakerRencanaForm(); if(tabIndex === 3) hideMakerRealisasiForm(); } 
+                    else if(tabIndex === 2) { tabs[i].classList.add('border-amber-500', 'text-amber-600'); } 
+                    else if(tabIndex === 4) { tabs[i].classList.add('border-purple-500', 'text-purple-600'); } 
+                    else if(tabIndex === 5) { tabs[i].classList.add('border-indigo-500', 'text-indigo-600'); renderKonsolidasiTable(); }
+                } else { v.classList.add('hidden'); v.classList.remove('block'); tabs[i].classList.remove('border-b-2', 'border-blue-700', 'border-amber-500', 'border-purple-500', 'border-indigo-500', 'text-blue-700', 'text-amber-600', 'text-purple-600', 'text-indigo-600'); }
+            });
+        }
+        function showToast(msg) { const t = document.getElementById('toastMsg'); document.getElementById('toastText').innerText = msg; t.classList.remove('translate-y-24', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3000); }
+        function openExcelModal(tipe) { if(tipe === 'rencana') { generateExcelRencana(); document.getElementById('excelModalRencana').classList.remove('hidden'); } else if (tipe === 'realisasi') { generateExcelRealisasi(); document.getElementById('excelModalRealisasi').classList.remove('hidden'); } else { generateExcelKonsolidasi(); document.getElementById('excelModalKonsolidasi').classList.remove('hidden'); } }
+        
+        function generateExcelRencana() {
+            const tbody = document.getElementById('excelTbodyRencana'); tbody.innerHTML = '';
+            if(ctx.submittedData.length === 0) { tbody.innerHTML = `<tr><td colspan="12" class="text-center py-4 italic text-gray-500">Belum ada data.</td></tr>`; return; }
+            let rowNum = 2; let no = 1;
+            ctx.submittedData.forEach(item => {
+                let sColor = ctx.statusRencana === 'Approved' ? 'text-[#217346]' : (ctx.statusRencana === 'Revisi' ? 'text-red-600' : 'text-amber-600');
+                item.targets.forEach(tgt => { tbody.insertAdjacentHTML('beforeend', `<tr><td class="excel-row-num">${rowNum++}</td><td>${no}</td><td>2026</td><td>${entitasPelapor}</td><td>${item.kategori}</td><td>${item.tema}</td><td>${item.program}</td><td>${item.sasaran.join(', ')}</td><td>${item.keterangan || '-'}</td><td class="bg-blue-50 text-xs">${tgt.label}</td><td class="text-right font-bold bg-blue-50">${tgt.value}</td><td class="${sColor} font-bold">${ctx.statusRencana} (V${ctx.versiRencana})</td></tr>`); });
+                no++;
+            });
+        }
+        
+        function generateExcelRealisasi() {
+            const tbody = document.getElementById('excelTbodyRealisasi'); tbody.innerHTML = '';
+            const keys = Object.keys(ctx.realisasiData).filter(k => ctx.statusRealisasiMap[k] !== 'Draft').sort((a, b) => b.localeCompare(a));
+            if(keys.length === 0) { tbody.innerHTML = `<tr><td colspan="16" class="text-center py-4 italic text-gray-500">Belum ada data.</td></tr>`; return; }
+            let rowNum = 2; let no = 1;
+            keys.forEach(key => {
+                const [tahun, tw] = key.split('-'); const curStat = ctx.statusRealisasiMap[key];
+                ctx.realisasiData[key].forEach(item => {
+                    item.capaian.forEach(cap => {
+                        const valPersen = (cap.actualValue / cap.targetValue) * 100; const persen = isNaN(valPersen) ? '0.0%' : valPersen.toFixed(1) + '%';
+                        let sColor = curStat === 'Approved' ? 'text-[#217346]' : (curStat === 'Revisi' ? 'text-red-600' : 'text-amber-600');
+                        tbody.insertAdjacentHTML('beforeend', `<tr><td class="excel-row-num">${rowNum++}</td><td>${no}</td><td>${tw}</td><td>${tahun}</td><td>${entitasPelapor}</td><td class="text-center font-bold text-blue-700 bg-blue-50">V${item.versiBaseline || 1}</td><td>${item.kategori}</td><td>${item.tema || '-'}</td><td>${item.program}</td><td>${item.sasaran ? item.sasaran.join(', ') : '-'}</td><td>${item.keterangan || '-'}</td><td class="bg-blue-50 text-xs">${cap.label}</td><td class="text-right bg-blue-50">${cap.targetValue}</td><td class="text-right font-bold bg-purple-50 text-purple-700">${cap.actualValue}</td><td class="text-right font-bold ${valPersen >= 100 ? 'text-[#217346]' : 'text-red-600'} bg-pink-50">${persen}</td><td class="${sColor} font-bold">${curStat}</td></tr>`);
+                    }); no++;
+                });
+            });
+        }
+
+        function generateExcelKonsolidasi() {
+            const tbody = document.getElementById('excelTbodyKonsolidasi'); tbody.innerHTML = ''; let rowNum = 2; 
+            let allData = [];
+            
+            function getLatestApprovedActuals(stateObj) {
+                let approvedKeys = Object.keys(stateObj.statusRealisasiMap).filter(k => stateObj.statusRealisasiMap[k] === 'Approved').sort();
+                if (approvedKeys.length === 0) return null;
+                let latestKey = approvedKeys[approvedKeys.length - 1];
+                let actualsMap = {};
+                stateObj.realisasiData[latestKey].forEach(prog => { actualsMap[prog.idProgram] = prog.capaian; });
+                return actualsMap;
+            }
+
+            [appState.prov, appState.kab].forEach(state => {
+                if (state.hasApprovedBaseline && state.approvedBaselineData.length > 0) {
+                    let latestActualsMap = getLatestApprovedActuals(state) || {};
+                    state.approvedBaselineData.forEach(item => { 
+                        let actualsForProg = latestActualsMap[item.id] || [];
+                        allData.push({ 
+                            kategori: item.kategori, 
+                            targets: item.targets.map(t => ({label: t.label, value: Number(t.value)})),
+                            actuals: item.targets.map(t => {
+                                let foundAct = actualsForProg.find(a => a.label === t.label);
+                                return { label: t.label, value: foundAct ? Number(foundAct.actualValue) : 0 };
+                            })
+                        }); 
+                    });
+                }
+            });
+
+            let agregatData = {};
+            allData.forEach(item => {
+                const kat = item.kategori;
+                if(!agregatData[kat]) agregatData[kat] = {};
+                item.targets.forEach(tgt => { 
+                    if(!agregatData[kat][tgt.label]) agregatData[kat][tgt.label] = { target: 0, actual: 0 }; 
+                    agregatData[kat][tgt.label].target += Number(tgt.value); 
+                });
+                if (item.actuals) {
+                    item.actuals.forEach(act => {
+                        if(agregatData[kat][act.label]) agregatData[kat][act.label].actual += Number(act.value);
+                    });
+                }
+            });
+
+            for(let kat in agregatData) { 
+                for(let ind in agregatData[kat]) { 
+                    const totalTarget = agregatData[kat][ind].target;
+                    const totalActual = agregatData[kat][ind].actual;
+                    const persen = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '-';
+                    tbody.insertAdjacentHTML('beforeend', `<tr><td class="excel-row-num">${rowNum++}</td><td>${kat}</td><td class="bg-blue-50 text-xs">${ind}</td><td class="text-right font-bold bg-blue-50">${totalTarget}</td><td class="text-right font-bold bg-purple-50">${totalActual}</td><td class="text-right font-bold bg-pink-50">${persen}</td></tr>`); 
+                } 
+            }
+        }
+        
+        function closeExcelModal(tipe) { if(tipe === 'rencana') document.getElementById('excelModalRencana').classList.add('hidden'); else if (tipe === 'realisasi') document.getElementById('excelModalRealisasi').classList.add('hidden'); else document.getElementById('excelModalKonsolidasi').classList.add('hidden'); }
+        function downloadAsli(tipe) { showAlert("Mengunduh", `Memproses pengunduhan file Excel Unpivoted (${tipe}) ke perangkat Anda...`); closeExcelModal(tipe); }
+
+        window.onload = () => { changeRole('maker_kab'); };
+    </script>
+</body>
+</html>
